@@ -9,7 +9,9 @@ import (
 	"regexp"
 )
 
-var templates = template.Must(template.ParseFiles("view.html", "edit.html"))
+var dataFolder = "data/"
+var tmplFolder = "tmpl/"
+var templates = template.Must(template.ParseFiles(tmplFolder+"view.html", tmplFolder+"edit.html"))
 var validPath = regexp.MustCompile("^/(edit|save|view)/([a-zA-z0-9]+)$")
 
 // Page type struct
@@ -19,12 +21,12 @@ type Page struct {
 }
 
 func (p *Page) save() error {
-	filename := p.Title + ".txt"
+	filename := dataFolder + p.Title + ".txt"
 	return ioutil.WriteFile(filename, p.Body, 0600)
 }
 
 func loadPage(title string) (*Page, error) {
-	filename := title + ".txt"
+	filename := dataFolder + title + ".txt"
 	body, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -33,10 +35,15 @@ func loadPage(title string) (*Page, error) {
 }
 
 func main() {
+	http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/view/", makeHandler(viewHandler))
 	http.HandleFunc("/edit/", makeHandler(editHandler))
 	http.HandleFunc("/save/", makeHandler(saveHandler))
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/view/FrontPage", http.StatusFound)
 }
 
 func viewHandler(w http.ResponseWriter, r *http.Request, title string) {
