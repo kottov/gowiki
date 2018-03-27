@@ -13,6 +13,7 @@ var dataFolder = "data/"
 var tmplFolder = "tmpl/"
 var templates = template.Must(template.ParseFiles(tmplFolder+"view.html", tmplFolder+"edit.html"))
 var validPath = regexp.MustCompile("^/(edit|save|view)/([a-zA-z0-9]+)$")
+var link = regexp.MustCompile(`\[([^\[\]]*)\]`)
 
 // Page type struct
 type Page struct {
@@ -75,6 +76,7 @@ func saveHandler(w http.ResponseWriter, r *http.Request, title string) {
 }
 
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
+	linksConvert(p)
 	err := templates.ExecuteTemplate(w, tmpl+".html", p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -99,4 +101,13 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string)) http.Handl
 		}
 		fn(w, r, m[2])
 	}
+}
+
+func linksConvert(p *Page) {
+	out := link.ReplaceAllFunc(p.Body, toLink)
+	p.Body = out
+}
+
+func toLink(b []byte) []byte {
+	return []byte("<a href=\"/view/" + string(b) + "\">" + string(b) + "</a>")
 }
