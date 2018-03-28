@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 )
 
@@ -23,8 +24,11 @@ type Page struct {
 }
 
 func (p *Page) save() error {
+	if _, err := os.Stat(dataFolder); os.IsNotExist(err) {
+		os.Mkdir(dataFolder, 0777)
+	}
 	filename := dataFolder + p.Title + ".txt"
-	return ioutil.WriteFile(filename, p.Body, 0600)
+	return ioutil.WriteFile(filename, p.Body, 0777)
 }
 
 func loadPage(title string) (*Page, error) {
@@ -54,9 +58,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request, title string) {
 		http.Redirect(w, r, "/edit/"+title, http.StatusFound)
 		return
 	}
-
 	escapedBody := []byte(template.HTMLEscapeString(string(p.Body)))
-
 	p.DisplayBody = template.HTML(linkRegexp.ReplaceAllFunc(escapedBody, func(str []byte) []byte {
 		matched := linkRegexp.FindStringSubmatch(string(str))
 		out := []byte("<a href=\"/view/" + matched[1] + "\">" + matched[1] + "</a>")
